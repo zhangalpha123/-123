@@ -5,12 +5,12 @@ import yfinance as yf
 from scipy.spatial.distance import euclidean
 import matplotlib.pyplot as plt
 
+# ===== 股價預測主函數 =====
 def predict_stock_price(df, window_size=10, future_days=5, top_n=5):
     df = df[['Close']].dropna().copy()
     df['log_return'] = np.log(df['Close'] / df['Close'].shift(1))
     df = df.dropna().reset_index(drop=True)
 
-    # 若資料長度不夠，直接回傳錯誤
     if len(df) <= window_size + future_days:
         raise ValueError("歷史資料太少，無法進行預測。請選擇其他股票或調整參數。")
 
@@ -54,6 +54,7 @@ def predict_stock_price(df, window_size=10, future_days=5, top_n=5):
 
     return average_path, normalized_paths, stats, predicted_df
 
+# ===== 圖表繪製 =====
 def plot_predictions(average_path, normalized_paths, last_price):
     fig, ax = plt.subplots(figsize=(10, 6))
     for path in normalized_paths:
@@ -67,7 +68,32 @@ def plot_predictions(average_path, normalized_paths, last_price):
     ax.grid(True)
     return fig
 
-# ========== Streamlit Web App ==========
+# ===== Streamlit 主介面 =====
+st.set_page_config(page_title="股價預測 Web App", layout="centered")
 st.title("📈 股價預測 Web App")
-ticker = st.text_input("輸入股票代碼_
 
+ticker = st.text_input("輸入股票代碼（例如：AAPL、TSM）", "AAPL")
+
+if st.button("開始預測"):
+    try:
+        df = yf.download(ticker, period='5y', interval='1d')
+        if df.empty:
+            raise ValueError("找不到該股票代碼的資料。請確認輸入是否正確。")
+
+        avg_path, all_paths, stats, output_df = predict_stock_price(df)
+
+        fig = plot_predictions(avg_path, all_paths, stats['last_price'])
+        st.pyplot(fig)
+
+        st.success(
+            f"📊 預測結果：漲機率 {stats['up_probability']:.2%}，跌機率 {stats['down_probability']:.2%}，"
+            f"預測報酬率 {stats['expected_return_percent']:.2f}%"
+        )
+
+        st.dataframe(output_df)
+
+        csv = output_df.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📁 下載預測結果 (CSV)", csv, f"{ticker}_prediction.csv", "text/csv")
+
+    except Exception as e:
+        st.error(f"❌ 錯誤：{e}")
