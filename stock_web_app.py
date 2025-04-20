@@ -62,7 +62,7 @@ def plot_predictions(average_path, normalized_paths, last_price):
     ax.plot(range(1, len(average_path) + 1), average_path, color='black', linewidth=2, label='平均預測')
     ax.axhline(last_price, linestyle=':', color='gray', label='當前價格')
     ax.set_title('📉 預測未來股價趨勢')
-    ax.set_xlabel('未來第 N 天')
+    ax.set_xlabel('未來第 10 天')
     ax.set_ylabel('預測股價')
     ax.legend()
     ax.grid(True)
